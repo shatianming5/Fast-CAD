@@ -23,7 +23,13 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="FAST-CAD architecture overview">
   <meta property="article:published_time" content="2026-01-15T00:00:00.000Z">
+  <!-- Keep only these authors across OG article:author -->
   <meta property="article:author" content="Tianming (Tommy) Sha">
+  <meta property="article:author" content="Zechuan Chen">
+  <meta property="article:author" content="Zhan Cheng">
+  <meta property="article:author" content="Haotian Zhai">
+  <meta property="article:author" content="Xuwei Ding">
+  <meta property="article:author" content="Keze Wang">
   <meta property="article:section" content="Healthcare AI">
   <meta property="article:tag" content="fairness">
   <meta property="article:tag" content="stroke diagnosis">
@@ -37,7 +43,7 @@
   <meta name="twitter:image" content="https://shatianming.github.io/fast-cad/static/images/fast_cad_framework.png">
   <meta name="twitter:image:alt" content="FAST-CAD workflow diagram">
 
-  <!-- Academic/Research Specific -->
+  <!-- Academic/Research Specific (Highwire/Google Scholar) -->
   <meta name="citation_title" content="FAST-CAD: A Fairness-Aware Framework for Non-Contact Stroke Diagnosis">
   <meta name="citation_author" content="Sha, Tianming (Tommy)">
   <meta name="citation_author" content="Chen, Zechuan">
@@ -106,18 +112,10 @@
     "description": "FAST-CAD integrates domain-adversarial training with Group-DRO and multimodal self-supervision to deliver 91.2% AUC with a 3.0% subgroup gap for non-contact stroke diagnosis.",
     "author": [
       {"@type": "Person", "name": "Tianming (Tommy) Sha", "affiliation": {"@type": "Organization", "name": "Stony Brook University"}},
-      {"@type": "Person", "name": "Zechuan Chen", "affiliation": {"@type": "Organization", "name": "Sun Yat-sen University"}},
+      {"@type": "Person", "name": "Zechuan Chen", "affiliation": {"@type": "Organization", "name": "University of Wisconsin-Madison"}},
       {"@type": "Person", "name": "Zhan Cheng", "affiliation": {"@type": "Organization", "name": "University of Wisconsin-Madison"}},
       {"@type": "Person", "name": "Haotian Zhai", "affiliation": {"@type": "Organization", "name": "University of Minnesota"}},
       {"@type": "Person", "name": "Xuwei Ding", "affiliation": {"@type": "Organization", "name": "University of Wisconsin-Madison"}},
-      {"@type": "Person", "name": "Junnan Li", "affiliation": {"@type": "Organization", "name": "University of Wisconsin-Madison"}},
-      {"@type": "Person", "name": "Haixiang Tang", "affiliation": {"@type": "Organization", "name": "University of Illinois Urbana-Champaign"}},
-      {"@type": "Person", "name": "Zaoting Sun", "affiliation": {"@type": "Organization", "name": "University of Minnesota"}},
-      {"@type": "Person", "name": "Yanchuan Tang", "affiliation": {"@type": "Organization", "name": "University of Wisconsin-Madison"}},
-      {"@type": "Person", "name": "Yongzhe (Kindred) Yi", "affiliation": {"@type": "Organization", "name": "University of Wisconsin-Madison"}},
-      {"@type": "Person", "name": "Yuan Gao", "affiliation": {"@type": "Organization", "name": "University of Wisconsin-Madison"}},
-      {"@type": "Person", "name": "Anhao Li", "affiliation": {"@type": "Organization", "name": "University of Minnesota"}},
-      {"@type": "Person", "name": "Yanjie Huang", "affiliation": {"@type": "Organization", "name": "Sun Yat-sen University"}},
       {"@type": "Person", "name": "Keze Wang", "affiliation": {"@type": "Organization", "name": "Sun Yat-sen University"}}
     ],
     "datePublished": "2026-01-15",
@@ -128,10 +126,7 @@
     "abstract": "Stroke is an acute cerebrovascular disease, and timely diagnosis significantly improves patient survival. However, existing automated diagnosis methods suffer from fairness issues across demographic groups, potentially exacerbating healthcare disparities. We propose FAST-CAD, a theoretically grounded framework that integrates Domain-Adversarial Training with Group Distributionally Robust Optimization for fair and accurate non-contact stroke diagnosis. Our multimodal dataset spans 12 demographic subgroups defined by age, gender, and posture. Self-supervised encoders with adversarial domain discrimination learn demographic-invariant representations, while Group-DRO optimizes worst-group risk. FAST-CAD attains 91.2% AUC with subgroup gaps under 3% and provides convergence and fairness guarantees.",
     "isAccessibleForFree": true,
     "license": "https://creativecommons.org/licenses/by/4.0/",
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": "https://shatianming.github.io/fast-cad"
-    },
+    "mainEntityOfPage": {"@type": "WebPage", "@id": "https://shatianming.github.io/fast-cad"},
     "about": [
       {"@type": "Thing", "name": "Stroke diagnosis"},
       {"@type": "Thing", "name": "Fairness in medical AI"},
@@ -214,12 +209,11 @@
               <p class="hero-tagline">Self-supervised multimodal sensing + unified Domain-Adversarial Training and Group-DRO enable equitable, contact-free stroke screening.</p>
               <div class="is-size-5 publication-authors">
                 <span class="author-block"><strong>First Author:</strong> <a href="mailto:tianming.sha@stonybrook.edu">Tianming (Tommy) Sha</a><sup>1</sup></span><br>
-                <span class="author-block"><strong>Co-second Authors:</strong> Zechuan Chen<sup>5&dagger;</sup>, Zhan Cheng<sup>2&dagger;</sup>, Haotian Zhai<sup>3&dagger;</sup>, Xuwei Ding<sup>2&dagger;</sup>, Junnan Li<sup>2&dagger;</sup>, Haixiang Tang<sup>4&dagger;</sup>, Zaoting Sun<sup>3&dagger;</sup>, Yanchuan Tang<sup>2&dagger;</sup>, Yongzhe (Kindred) Yi<sup>2&dagger;</sup>, Yuan Gao<sup>2&dagger;</sup>, Anhao Li<sup>3&dagger;</sup>, Yanjie Huang<sup>5&dagger;</sup></span><br>
-                <span class="author-block"><strong>Corresponding Author:</strong> Keze Wang<sup>5&Dagger;</sup></span>
+                <span class="author-block">Zechuan Chen<sup>2</sup>, Zhan Cheng<sup>2</sup>, Haotian Zhai<sup>3</sup>, Xuwei Ding<sup>2</sup>, <strong>Corresponding:</strong> Keze Wang<sup>4†</sup></span>
               </div>
               <div class="is-size-6 publication-authors">
-                <span class="author-block">1 Stony Brook University &middot; 2 University of Wisconsin-Madison &middot; 3 University of Minnesota &middot; 4 University of Illinois Urbana-Champaign &middot; 5 Sun Yat-sen University</span>
-                <span class="eql-cntrb"><small><br><sup>&dagger;</sup>Co-second authors &middot; <sup>&Dagger;</sup>Corresponding author</small></span>
+                <span class="author-block">1 Stony Brook University &middot; 2 University of Wisconsin-Madison &middot; 3 University of Minnesota &middot; 4 Sun Yat-sen University</span>
+                <span class="eql-cntrb"><small><br><sup>†</sup>Corresponding author</small></span>
               </div>
               <p class="publication-venue">AAAI 2026 · <span class="oral-badge">Oral</span></p>
               <div class="publication-links">
@@ -542,7 +536,7 @@
         </div>
         <pre id="bibtex-code"><code>@misc{sha2025fastcadfairnessawareframeworknoncontact,
   title={FAST-CAD: A Fairness-Aware Framework for Non-Contact Stroke Diagnosis},
-  author={Tianming Sha and Zechuan Chen and Zhan Cheng and Haotian Zhai and Xuwei Ding and Junnan Li and Haixiang Tang and Zaoting Sun and Yanchuan Tang and Yongzhe Yi and Yanjie Huang and Anhao Li and Yuan Gao and Keze Wang},
+  author={Tianming (Tommy) Sha and Zechuan Chen and Zhan Cheng and Haotian Zhai and Xuwei Ding and Keze Wang},
   year={2025},
   eprint={2511.08887},
   archivePrefix={arXiv},
