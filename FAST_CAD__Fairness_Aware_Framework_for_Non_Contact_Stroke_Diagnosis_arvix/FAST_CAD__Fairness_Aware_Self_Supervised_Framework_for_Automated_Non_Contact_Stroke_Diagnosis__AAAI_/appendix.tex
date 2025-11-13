@@ -1,0 +1,380 @@
+
+\documentclass[letterpaper]{article} % DO NOT CHANGE THIS
+\usepackage[submission]{aaai2026}  % DO NOT CHANGE THIS
+\usepackage{times}  % DO NOT CHANGE THIS
+\usepackage{helvet}  % DO NOT CHANGE THIS
+\usepackage{courier}  % DO NOT CHANGE THIS
+\usepackage[hyphens]{url}  % DO NOT CHANGE THIS
+\usepackage[section]{placeins}
+\usepackage{graphicx} % DO NOT CHANGE THIS
+\urlstyle{rm} % DO NOT CHANGE THIS
+\def\UrlFont{\rm}  % DO NOT CHANGE THIS
+\usepackage{natbib}  % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{caption} % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{adjustbox}
+\frenchspacing  % DO NOT CHANGE THIS
+\setlength{\pdfpagewidth}{8.5in} % DO NOT CHANGE THIS
+\setlength{\pdfpageheight}{11in} % DO NOT CHANGE THIS
+%
+% Algorithm packages removed - not used in this paper
+
+%
+% Additional packages for the paper
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{pifont}  % for check and cross marks
+\usepackage{multirow}
+\usepackage{float}              % For precise table placement with [H]
+\usepackage{enumitem}           % Flexible control for itemize/enum
+
+%
+% Keep the \pdfinfo as shown here. There's no need
+% for you to add the /Title and /Author tags.
+\pdfinfo{
+/TemplateVersion (2026.1)
+}
+\begin{document}
+
+% Custom commands for the paper
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+\newcommand{\circleorange}{\textcolor{orange}{\large\textbullet}}
+\newcommand{\circleblue}{\textcolor{blue}{\large\textbullet}}
+\newcommand{\circlegreen}{\textcolor{green}{\large\textbullet}}
+\newcommand{\circleblack}{\textcolor{black}{\large\textbullet}}
+\newcommand{\circlered}{\textcolor{red}{\large\textbullet}}
+\newcommand{\circlepink}{\textcolor{pink}{\large\textbullet}}
+
+\section{Implementation Details}
+\label{sec:implementation_details}
+
+\subsection{Feature Extraction Pipeline}
+We employ state-of-the-art self-supervised models for multimodal feature extraction:
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{Keypoint Detection}: MMPOSE~\cite{mmpose2020} for 2D pose estimation (17 keypoints)
+\item \textbf{Audio Encoding}: HuBERT-Large~\cite{9585401} pretrained on WenetSpeech~\cite{9746682} (1024-dim features)
+\item \textbf{Video Encoding}: SeCo~\cite{yao2021seco} pretrained on Kinetics-400~\cite{Kay2017TheKH} (2048-dim features)
+\end{itemize}
+
+\subsection{Model Architecture}
+Our Alternating Dual-Stream Transformer employs:
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{Transformer Configuration}: $L=6$ layers, $M=8$ attention heads, hidden dimension $d=512$
+\item \textbf{Positional Embeddings}: Learnable embeddings with dimensions $d_1=32$ (temporal), $d_2=20$ (spatial height), $d_3=20$ (spatial width)
+\item \textbf{Cross-Attention}: Alternating bidirectional cross-attention between audio and visual streams
+\item \textbf{Demographic Discriminator}: 3-layer MLP (512-256-128-$|\mathcal{A}|$) with gradient reversal layer
+\end{itemize}
+
+\subsection{Training Configuration}
+\textbf{Standard Training} (for all main experiments):
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{Epochs}: 20 (sufficient for convergence on our dataset)
+\item \textbf{Batch Size}: 32 samples with demographic balancing
+\item \textbf{Optimizer}: AdamW with $\beta_1=0.9$, $\beta_2=0.999$, weight decay $0.01$
+\item \textbf{Learning Rates}: $\eta_{\text{main}}=1\times10^{-5}$, $\eta_{\text{disc}}=1\times10^{-6}$ (10× smaller for stable adversarial training)
+\item \textbf{Regularization}: $\lambda_{\text{adv}}=0.1$, dropout $p=0.1$, label smoothing $\epsilon=0.1$
+\item \textbf{Loss Function}: Binary cross-entropy for stroke classification + adversarial loss + Group-DRO weighted loss
+\end{itemize}
+
+\textbf{Extended Convergence Analysis} (Section 5.1 only):
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item Extended training to 500 epochs specifically for theoretical validation
+\item Used to verify $O(1/\sqrt{T})$ convergence rate of Group-DRO
+\item Not required for practical deployment (20 epochs achieve 99\% of final performance)
+\end{itemize}
+
+\subsection{Hardware and Runtime}
+All experiments are conducted on 4 NVIDIA V100 GPUs (32GB each). Training takes approximately 24 hours for the full model. Inference runs at 15 FPS on a single GPU, suitable for real-time deployment.
+
+\subsection{Reproducibility}
+Code, pretrained models, and detailed hyperparameter configurations are available at \url{https://anonymous.github.io/fast-cad}. We provide Docker containers to ensure reproducible environments.
+
+\section{Dataset Details}
+\label{sec:dataset_details}
+
+\subsection{Data Collection Challenges}
+Constructing an audiovisual dataset for stroke patient diagnosis meeting clinical standards involves several critical challenges:
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item Strict compliance with medical ethics and privacy regulations
+\item Ensuring patient safety throughout data collection
+\item Securing informed consent and providing comfortable collection environments
+\item Thorough anonymization of all collected data, limiting use to research purposes
+\end{itemize}
+
+\subsection{Detailed Collection Protocol}
+To ensure data reliability and validity, we established standardized data collection protocols:
+
+\textbf{Video Recording Setup:}
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{Facial movements}: Recorded from frontal and lateral views using 1080p cameras at 30fps to capture subtle muscle activity
+\item \textbf{Tongue protrusion}: Focused recording with specialized lighting to highlight detailed tongue movements essential for diagnostic analysis
+\item \textbf{Arm extension}: Wide-angle recording to assess limb coordination and movement stability
+\end{itemize}
+
+\textbf{Audio Recording Setup:}
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item Professional-grade microphones (48kHz sampling rate) in acoustically treated rooms
+\item Participants performed standardized speech tasks including counting, reading sentences, and spontaneous speech
+\item Background noise levels maintained below 40dB
+\end{itemize}
+
+\subsection{Fairness-Aware Collection Strategy}
+Our data collection protocol explicitly addressed fairness considerations:
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{Stratified sampling}: Ensured balanced representation across 12 demographic subgroups
+\item \textbf{Targeted recruitment}: Special efforts to recruit underserved populations, particularly elderly females in sleeping postures who historically experience lower diagnostic accuracy
+\item \textbf{Environmental diversity}: Collection sites ranged from quiet clinical settings to noisy community centers (ambient noise 40-70dB) to capture real-world diagnostic complexity
+\item \textbf{Posture variations}: Patients recorded in both sitting and sleeping positions to reflect realistic stroke presentation scenarios
+\end{itemize}
+
+\subsection{Detailed Demographic Breakdown}
+The following table provides the exact distribution of subjects across all 12 demographic subgroups:
+
+\begin{table}[H]
+\centering
+\caption{Detailed breakdown of subjects across 12 demographic subgroups.}
+\label{tab:detailed_demographics}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Subgroup} & \textbf{Total N} & \textbf{Stroke} & \textbf{Healthy} \\
+\midrule
+Male, $<$35, Sitting & 23 & 11 & 12 \\
+Male, $<$35, Sleeping & 12 & 6 & 6 \\
+Male, 35-60, Sitting & 28 & 14 & 14 \\
+Male, 35-60, Sleeping & 24 & 12 & 12 \\
+Male, $>$60, Sitting & 25 & 13 & 12 \\
+Male, $>$60, Sleeping & 33 & 17 & 16 \\
+\midrule
+Female, $<$35, Sitting & 21 & 10 & 11 \\
+Female, $<$35, Sleeping & 9 & 4 & 5 \\
+Female, 35-60, Sitting & 26 & 13 & 13 \\
+Female, 35-60, Sleeping & 18 & 9 & 9 \\
+Female, $>$60, Sitting & 16 & 8 & 8 \\
+Female, $>$60, Sleeping & 8 & 4 & 4 \\
+\midrule
+\textbf{Total} & \textbf{243} & \textbf{121} & \textbf{122} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Quality Control}
+All collected data underwent rigorous quality control:
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item Professional neurologists verified stroke diagnoses using clinical records and imaging
+\item Video quality assessed for clarity, lighting, and complete capture of required movements
+\item Audio quality verified for clarity and absence of artifacts
+\item Demographic metadata double-checked for accuracy
+\end{itemize}
+
+\subsection{Comparison with Existing Datasets}
+Our dataset offers several advantages over existing non-contact diagnostic datasets:
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{Scale}: 243 subjects vs. 100-150 in previous datasets
+\item \textbf{Modalities}: Comprehensive multimodal data (face, tongue, arms, speech) vs. single modality
+\item \textbf{Fairness focus}: Explicit demographic stratification across 12 subgroups
+\item \textbf{Real-world conditions}: Diverse recording environments reflecting clinical reality
+\item \textbf{Clinical validation}: All diagnoses confirmed by neurologists with imaging evidence
+\end{itemize}
+
+
+\clearpage
+
+
+\section{Detailed Experimental Results}
+\label{sec:full_sota}
+
+\begin{table*}[ht]
+  \small
+  \caption{Full comparison with state-of-the-art stroke diagnosis methods. Results show mean $\pm$ standard deviation over 5 independent runs. Sensitivity measures stroke detection rate, specificity measures healthy detection rate. Best results in \textbf{bold}, second best \underline{underlined}.}
+  \label{tab:full_sota}
+  \centering
+  \begin{tabular}{@{}lcccccc@{}}
+    \toprule
+    \textbf{Method} & \textbf{Input} & \textbf{AUC (\%)} & \textbf{Acc (\%)} & \textbf{F1 (\%)} & \textbf{Sens (\%)} & \textbf{Spec (\%)} \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{7}{l}{\textbf{Video-based Methods (original features)}} \\
+    \rowcolor{gray!8} I3D~\cite{carreira2017quo} & RGB & 68.1$\pm$9.7 & 70.9$\pm$10.6 & 75.8$\pm$9.7 & 65.2$\pm$8.4 & 73.1$\pm$7.9 \\
+    SlowFast~\cite{9008780} & RGB & 72.9$\pm$9.3 & 75.9$\pm$8.6 & 81.0$\pm$9.0 & 70.1$\pm$7.8 & 76.3$\pm$6.2 \\
+    \rowcolor{gray!8} TimeSformer~\cite{bertasius2021timesformer} & RGB & 74.4$\pm$7.2 & 79.9$\pm$6.2 & 85.4$\pm$6.3 & 72.3$\pm$6.5 & 78.1$\pm$5.8 \\
+    Swin-Video~\cite{liu2021swin} & RGB & 74.6$\pm$7.2 & 72.1$\pm$4.8 & 80.0$\pm$3.4 & 71.8$\pm$5.9 & 77.2$\pm$4.7 \\
+    \rowcolor{gray!8} MViT~\cite{fan2021multiscale} & RGB & 78.0$\pm$9.0 & 81.0$\pm$7.0 & 86.0$\pm$6.0 & 75.2$\pm$6.8 & 80.4$\pm$5.2 \\
+    VideoMAE~\cite{tong2022videomae} & RGB & 81.0$\pm$3.2 & 78.2$\pm$5.6 & 82.7$\pm$4.8 & 78.4$\pm$4.1 & 82.1$\pm$3.9 \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{7}{l}{\textbf{Medical Stroke Diagnosis Methods}} \\
+    DeepStroke~\cite{CAI2022102522} & Multi & 84.5$\pm$5.6 & 76.2$\pm$5.9 & 82.3$\pm$4.7 & 82.1$\pm$4.5 & 85.1$\pm$3.8 \\
+    \rowcolor{gray!8} M3Stroke~\cite{cai2024m3stroke} & Multi & \underline{86.3$\pm$4.3} & 79.2$\pm$3.9 & 84.2$\pm$4.2 & \underline{84.1$\pm$3.6} & \underline{87.2$\pm$3.2} \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{7}{l}{\textbf{Audio-only Methods (speech analysis)}} \\
+    wav2vec 2.0~\cite{baevski2020wav2vec2} & Audio & 63.1$\pm$3.7 & 71.6$\pm$4.7 & 73.4$\pm$6.8 & 59.8$\pm$5.2 & 75.3$\pm$4.9 \\
+    \rowcolor{gray!8} Whisper-base~\cite{radford2023robust} & Audio & 65.8$\pm$4.2 & 69.3$\pm$5.1 & 71.2$\pm$5.9 & 62.9$\pm$4.8 & 72.1$\pm$5.3 \\
+    WavLM~\cite{chen2022wavlm} & Audio & 68.4$\pm$3.8 & 72.8$\pm$4.3 & 74.9$\pm$5.2 & 66.2$\pm$4.1 & 76.4$\pm$3.7 \\
+    \rowcolor{gray!8} HuBERT~\cite{9585401} & Audio & 67.2$\pm$4.1 & 71.9$\pm$4.6 & 74.1$\pm$5.5 & 64.7$\pm$4.5 & 74.8$\pm$4.2 \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{7}{l}{\textbf{Architectural Ablations (using our features)}} \\
+    Late Fusion & Multi & 82.3$\pm$4.2 & 78.1$\pm$5.1 & 83.2$\pm$3.8 & 79.8$\pm$3.9 & 83.1$\pm$3.5 \\
+    \rowcolor{gray!8} Concatenation & Multi & 84.6$\pm$3.1 & 80.5$\pm$4.3 & 84.9$\pm$3.1 & 82.3$\pm$3.4 & 85.2$\pm$2.9 \\
+    Cross-Attention & Multi & 88.6$\pm$2.2 & \underline{83.1$\pm$4.8} & \underline{87.2$\pm$3.4} & 86.4$\pm$2.8 & 89.1$\pm$2.1 \\
+    \midrule
+    \textbf{FAST-CAD (Ours)} & Multi & \textbf{91.2$\pm$1.5} & \textbf{87.2$\pm$3.1} & \textbf{90.8$\pm$2.3} & \textbf{89.1$\pm$2.0} & \textbf{92.3$\pm$1.8} \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\subsection{Complete SOTA Comparison}
+
+Table~\ref{tab:full_sota} presents the comprehensive comparison with all evaluated methods, including detailed sensitivity and specificity metrics crucial for clinical deployment.
+
+
+
+\subsubsection{Detailed Analysis}
+
+\textbf{Audio-only Performance:} Audio-only methods achieve limited performance (63-68\% AUC) with notably low sensitivity (59.8-66.2\%), as speech impairments occur in only ~40\% of stroke cases. However, they maintain reasonable specificity (72.1-76.4\%), indicating they rarely misclassify healthy individuals as stroke patients.
+
+\textbf{Key Performance Insights:}
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{vs. Best Medical Method (M3Stroke):} +4.9\% AUC, +8.0\% Acc, +5.0\% Sens, +5.1\% Spec
+\item \textbf{vs. Best Video Method (VideoMAE):} +10.2\% AUC, +9.0\% Acc, +10.7\% Sens, +10.2\% Spec
+\item \textbf{vs. Best Ablation (Cross-Attention):} +2.6\% AUC, +4.1\% Acc, +2.7\% Sens, +3.2\% Spec
+\end{itemize}
+
+\textbf{Clinical Relevance:} FAST-CAD achieves 89.1\% sensitivity and 92.3\% specificity, crucial for clinical acceptance. High sensitivity ensures stroke patients are not missed (critical for patient safety), while high specificity reduces false alarms (important for healthcare resource allocation).
+
+\subsection{Full Modality Ablation Study}
+\label{sec:full_modality}
+
+Table~\ref{tab:full_modality} presents a comprehensive ablation study of all possible modality combinations, demonstrating the contribution of each modality and their synergistic effects.
+
+\begin{table*}[ht]
+  \small
+  \caption{Complete modality ablation study showing all combinations (F=Face, T=Tongue, B=Body motion, A=Audio). Results show mean $\pm$ standard deviation over 5 runs. $\Delta$ shows improvement over face-only baseline.}
+  \label{tab:full_modality}
+  \centering
+  \begin{tabular}{@{}lccccccc@{}}
+    \toprule
+    \textbf{Modalities} & \textbf{AUC (\%)} & \textbf{$\Delta$AUC} & \textbf{Acc (\%)} & \textbf{F1 (\%)} & \textbf{Sens (\%)} & \textbf{Spec (\%)} & \textbf{Params} \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{8}{l}{\textbf{Single Modality}} \\
+    F only & 82.1$\pm$5.1 & -- & 77.3$\pm$6.2 & 81.2$\pm$5.4 & 79.1$\pm$5.8 & 83.2$\pm$4.9 & 28M \\
+    \rowcolor{gray!8} T only & 73.4$\pm$6.8 & -8.7 & 69.2$\pm$7.3 & 72.1$\pm$6.9 & 70.3$\pm$6.1 & 74.2$\pm$5.7 & 21M \\
+    B only & 70.2$\pm$7.2 & -11.9 & 66.8$\pm$7.9 & 69.3$\pm$7.4 & 68.1$\pm$6.8 & 71.3$\pm$6.2 & 17M \\
+    \rowcolor{gray!8} A only & 67.2$\pm$4.1 & -14.9 & 71.9$\pm$4.6 & 74.1$\pm$5.5 & 64.7$\pm$4.5 & 74.8$\pm$4.2 & 14M \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{8}{l}{\textbf{Two Modalities}} \\
+    F+T & 85.7$\pm$4.7 & +3.6 & 80.9$\pm$5.4 & 84.3$\pm$4.8 & 82.7$\pm$5.1 & 86.8$\pm$4.3 & 38M \\
+    \rowcolor{gray!8} F+B & 84.2$\pm$5.3 & +2.1 & 79.4$\pm$5.8 & 82.8$\pm$5.2 & 81.2$\pm$5.4 & 85.3$\pm$4.7 & 35M \\
+    F+A & 83.9$\pm$4.9 & +1.8 & 79.1$\pm$5.5 & 82.5$\pm$4.9 & 80.9$\pm$5.2 & 85.0$\pm$4.5 & 33M \\
+    \rowcolor{gray!8} T+B & 76.8$\pm$6.2 & -5.3 & 72.3$\pm$6.7 & 75.2$\pm$6.3 & 73.4$\pm$5.9 & 77.8$\pm$5.4 & 29M \\
+    T+A & 75.3$\pm$5.8 & -6.8 & 71.2$\pm$6.3 & 74.0$\pm$5.9 & 72.1$\pm$5.5 & 76.3$\pm$5.1 & 27M \\
+    \rowcolor{gray!8} B+A & 72.9$\pm$6.5 & -9.2 & 68.7$\pm$7.0 & 71.4$\pm$6.6 & 69.8$\pm$6.2 & 73.9$\pm$5.8 & 24M \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{8}{l}{\textbf{Three Modalities}} \\
+    F+T+B & 88.3$\pm$2.2 & +6.2 & 83.5$\pm$3.8 & 86.9$\pm$3.1 & 85.4$\pm$3.5 & 89.4$\pm$2.9 & 45M \\
+    \rowcolor{gray!8} F+T+A & 87.1$\pm$3.4 & +5.0 & 82.3$\pm$4.2 & 85.7$\pm$3.7 & 84.2$\pm$3.9 & 88.2$\pm$3.3 & 43M \\
+    F+B+A & 85.8$\pm$3.8 & +3.7 & 81.1$\pm$4.5 & 84.5$\pm$4.0 & 83.0$\pm$4.2 & 86.9$\pm$3.6 & 40M \\
+    \rowcolor{gray!8} T+B+A & 78.4$\pm$5.6 & -3.7 & 74.2$\pm$6.1 & 77.0$\pm$5.7 & 75.3$\pm$5.3 & 79.5$\pm$4.9 & 35M \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{8}{l}{\textbf{All Modalities}} \\
+    \textbf{F+T+B+A} & \textbf{91.2$\pm$1.5} & \textbf{+9.1} & \textbf{87.2$\pm$3.1} & \textbf{90.8$\pm$2.3} & \textbf{89.1$\pm$2.0} & \textbf{92.3$\pm$1.8} & 59M \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\textbf{Key Insights from Modality Ablation:}
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{Face modality is crucial:} All top-performing combinations include face (F), achieving >82\% AUC. Without face, performance drops significantly (-3.7 to -14.9\% AUC).
+\item \textbf{Synergistic effects:} Combining modalities yields super-additive gains. F+T+B (88.3\%) outperforms the sum of individual improvements from T (+3.6\%) and B (+2.1\%).
+\item \textbf{Audio complements visual:} Adding audio to F+T+B provides the final +2.9\% AUC boost, capturing speech impairments missed by visual modalities.
+\item \textbf{Diminishing returns:} Each additional modality provides smaller incremental gains, but all contribute to reducing variance (from 5.1\% to 1.5\%).
+\end{itemize}
+
+\subsection{Detailed Architectural Ablation}
+\label{sec:arch_ablation}
+
+Table~\ref{tab:detailed_arch} provides comprehensive architectural component analysis comparing different implementation choices and their impact on performance.
+
+\begin{table*}[ht]
+\centering
+\caption{Complete cross-domain generalization performance. All methods evaluated on 86-participant external cohort collected under different conditions (consumer cameras, home settings, telemedicine protocol).}
+\label{tab:detailed_generalization}
+\small
+\begin{tabular}{@{}l|cccc|cccc@{}}
+\toprule
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{4}{c|}{\textbf{Original Test Set}} & \multicolumn{4}{c}{\textbf{External Cohort}} \\
+\cmidrule{2-9}
+& AUC (\%) & Acc (\%) & Sens (\%) & Spec (\%) & AUC (\%) & Acc (\%) & Sens (\%) & Spec (\%) \\
+\midrule
+\rowcolor{gray!8} MViT & 78.0$\pm$9.0 & 81.0$\pm$7.0 & 75.2$\pm$6.8 & 80.4$\pm$5.2 & 65.3$\pm$11.2 & 67.4$\pm$9.8 & 61.8$\pm$10.4 & 71.2$\pm$8.6 \\
+M3Stroke & 86.3$\pm$4.3 & 79.2$\pm$3.9 & 84.1$\pm$3.6 & 87.2$\pm$3.2 & 71.6$\pm$7.8 & 68.5$\pm$6.7 & 66.9$\pm$8.2 & 74.3$\pm$7.1 \\
+\rowcolor{gray!8} DeepStroke & 84.5$\pm$5.6 & 76.2$\pm$5.9 & 82.3$\pm$4.7 & 85.1$\pm$3.8 & 66.8$\pm$9.3 & 64.7$\pm$8.2 & 63.2$\pm$9.7 & 69.8$\pm$8.6 \\
+\midrule
+\textbf{FAST-CAD (Full)} & \textbf{91.2$\pm$1.5} & \textbf{87.2$\pm$3.1} & \textbf{89.1$\pm$2.0} & \textbf{92.3$\pm$1.8} & \textbf{83.7$\pm$2.8} & \textbf{79.1$\pm$3.7} & \textbf{81.4$\pm$3.2} & \textbf{85.9$\pm$2.9} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[ht]
+  \centering
+  \small
+  \caption{Complete architectural component ablation comparing different implementation choices and their impact on performance.}
+  \label{tab:detailed_arch}
+  \begin{tabular}{@{}lccccc@{}}
+    \toprule
+    \textbf{Configuration} & \textbf{AUC (\%)} & \textbf{Acc (\%)} & \textbf{F1 (\%)} & \textbf{Sens (\%)} & \textbf{Spec (\%)} \\
+    \midrule
+    Full Model (Ours) & \textbf{91.2$\pm$1.5} & \textbf{87.2$\pm$3.1} & \textbf{90.8$\pm$2.3} & \textbf{89.1$\pm$2.0} & \textbf{92.3$\pm$1.8} \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{6}{l}{\textbf{Encoder Variants}} \\
+    \rowcolor{gray!8} SeCo → VideoMAE & 84.3$\pm$3.0 & 83.6$\pm$4.0 & 87.1$\pm$3.2 & 82.1$\pm$3.8 & 85.2$\pm$3.5 \\
+    HuBERT → VGGish & 86.6$\pm$3.5 & 82.9$\pm$4.2 & 83.1$\pm$3.7 & 84.2$\pm$3.1 & 88.1$\pm$2.9 \\
+    \rowcolor{gray!8} w/o Pre-trained & 85.4$\pm$3.2 & 79.8$\pm$4.1 & 84.1$\pm$3.7 & 83.1$\pm$3.4 & 86.3$\pm$3.2 \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{6}{l}{\textbf{Fusion Mechanisms}} \\
+    Alternating Dual-Stream & \textbf{91.2$\pm$1.5} & \textbf{87.2$\pm$3.1} & \textbf{90.8$\pm$2.3} & \textbf{89.1$\pm$2.0} & \textbf{92.3$\pm$1.8} \\
+    \rowcolor{gray!8} Single Cross-Attention & 88.6$\pm$2.2 & 83.1$\pm$4.8 & 87.2$\pm$3.4 & 86.4$\pm$2.8 & 89.1$\pm$2.1 \\
+    Simple Concatenation & 84.6$\pm$3.1 & 80.5$\pm$4.3 & 84.9$\pm$3.1 & 82.3$\pm$3.4 & 85.2$\pm$2.9 \\
+    \rowcolor{gray!8} Late Fusion & 82.3$\pm$4.2 & 78.1$\pm$5.1 & 83.2$\pm$3.8 & 79.8$\pm$3.9 & 83.1$\pm$3.5 \\
+    \midrule
+    \rowcolor{gray!20} \multicolumn{6}{l}{\textbf{Auxiliary Components}} \\
+    w/o Keypoint Branch & 89.2$\pm$2.7 & 83.5$\pm$3.4 & 87.3$\pm$2.8 & 86.8$\pm$2.5 & 90.1$\pm$2.2 \\
+    \rowcolor{gray!8} w/o Adversarial Disc. & 88.0$\pm$3.2 & 84.1$\pm$3.9 & 86.7$\pm$3.5 & 85.3$\pm$3.1 & 88.9$\pm$2.7 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\textbf{Detailed Analysis:}
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{Encoder Impact:} SeCo provides superior video understanding compared to VideoMAE (+6.9\% AUC), while HuBERT's speech-specific pretraining outperforms general audio models like VGGish (+4.6\% AUC).
+\item \textbf{Fusion Architecture:} Alternating dual-stream enables bidirectional cross-modal information exchange, significantly outperforming single cross-attention (+2.6\% AUC) and simple concatenation (+6.6\% AUC).
+\item \textbf{Component Contribution:} Keypoint branch provides structured motion guidance (+2.0\% AUC), while adversarial discriminator ensures demographic invariance (+3.2\% AUC).
+\end{itemize}
+
+\subsection{Complete Cross-Domain Analysis}
+\label{sec:cross_domain}
+
+Table~\ref{tab:detailed_generalization} presents comprehensive cross-domain evaluation results on the external validation cohort.
+
+\textbf{Key Cross-Domain Insights:}
+\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
+\item \textbf{Superior Robustness:} FAST-CAD maintains smallest performance drop (7.5\% AUC vs. 12.7-14.7\% for baselines).
+\item \textbf{Clinical Safety:} Maintains clinically acceptable sensitivity (81.4\%) and specificity (85.9\%) even under domain shift.
+\item \textbf{Fairness Preservation:} Worst-group AUC remains at 80.5\% (vs. 64.2\% for M3Stroke), demonstrating robust fairness guarantees.
+\end{itemize}
+
+
+% \begin{figure*}[ht]
+%   \centering
+%   \includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{IMGS/fairness_comparison.pdf}
+%   \caption{Top: t-SNE embeddings coloured by stroke label and split by Age, Gender, and Posture. Bottom: mean±SD AUC (Panels 1–3) and Acc (Panels 4–6), F1(Panels 7-9) for three models; \emph{Ours*} consistently tops all subgroups, indicating performance gains without fairness loss.}
+%   \label{fig:fairness}
+% \end{figure*}
+
+
+\bibliography{cas-refs}
+
+
+\end{document}
